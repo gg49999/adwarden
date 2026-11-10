@@ -1,0 +1,58 @@
+{
+  "name": "adwarden",
+  "version": "1.0.0",
+  "description": "A self-hostable Discord bot for advertising servers: invite-aware ad checks, rulesets, word filter, sticky messages, review queue, moderation, role panels and anti-raid.",
+  "keywords": [
+    "discord",
+    "discord-bot",
+    "discord.js",
+    "moderation",
+    "advertising",
+    "automod",
+    "word-filter",
+    "sticky-messages",
+    "typescript"
+  ],
+  "author": "gg49999",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gg49999/adwarden.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gg49999/adwarden/issues"
+  },
+  "homepage": "https://github.com/gg49999/adwarden#readme",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "dev": "prisma db push --skip-generate && tsx watch src/index.ts",
+    "start": "prisma db push --skip-generate && node dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "deploy": "tsx src/deploy-commands.ts",
+    "db:push": "prisma db push",
+    "test": "vitest run",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "discord.js": "14.28.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "prisma": "6.19.3",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "prisma@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "esbuild@0.28.2": true
+  }
+}

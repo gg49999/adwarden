@@ -1,0 +1,202 @@
+// Adwarden database schema.
+// SQLite by default so self-hosting needs no database server.
+// To use Postgres: change provider to "postgresql" and set DATABASE_URL accordingly.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Per-server settings. `config` is JSON validated by src/core/guildConfig.ts.
+model Guild {
+  id          String   @id
+  config      String   @default("{}")
+  caseCounter Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+/// A channel the ad engine watches, with its rule profile (JSON, see src/modules/ads/rules.ts).
+model AdChannel {
+  channelId String  @id
+  guildId   String
+  /// Channel-specific rules, used when rulesetId is null
+  rules     String
+  /// When set, the channel follows this shared ruleset instead of its own rules
+  rulesetId String?
+
+  @@index([guildId])
+}
+
+/// A named, reusable set of ad rules shared by several channels.
+model RuleSet {
+  id      String @id @default(cuid())
+  guildId String
+  name    String
+  rules   String
+
+  @@unique([guildId, name])
+}
+
+/// An ad that passed checks and is live (or was later removed).
+model Ad {
+  messageId     String    @id
+  channelId     String
+  guildId       String
+  authorId      String
+  inviteCode    String?
+  targetGuildId String?
+  targetName    String?
+  /// live | removed | expired
+  status        String    @default("live")
+  removedReason String?
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime?
+  lastCheckedAt DateTime  @default(now())
+
+  @@index([guildId, authorId])
+  @@index([guildId, targetGuildId])
+  @@index([status, lastCheckedAt])
+  @@index([status, expiresAt])
+}
+
+/// An ad waiting in the review queue.
+model PendingAd {
+  id              String   @id @default(cuid())
+  guildId         String
+  channelId       String
+  authorId        String
+  content         String
+  inviteCode      String?
+  targetGuildId   String?
+  targetName      String?
+  /// Why it was sent to review: "review_all" or a rule id
+  reason          String
+  reviewMessageId String?
+  /// pending | approved | rejected
+  status          String   @default("pending")
+  reviewerId      String?
+  createdAt       DateTime @default(now())
+
+  @@index([guildId, status])
+}
+
+/// One rule violation, kept for analytics (/ad stats).
+model AdViolation {
+  id        String   @id @default(cuid())
+  guildId   String
+  channelId String
+  userId    String
+  rule      String
+  createdAt DateTime @default(now())
+
+  @@index([guildId, createdAt])
+}
+
+/// Servers that may not be advertised, by server ID (survives new invite codes).
+model BlockedServer {
+  guildId       String
+  targetGuildId String
+  targetName    String?
+  reason        String?
+  addedBy       String
+  createdAt     DateTime @default(now())
+
+  @@id([guildId, targetGuildId])
+}
+
+model Reputation {
+  guildId    String
+  userId     String
+  score      Int    @default(0)
+  clean      Int    @default(0)
+  violations Int    @default(0)
+
+  @@id([guildId, userId])
+}
+
+/// Moderation case. type: warn | timeout | untimeout | kick | ban | tempban | softban | unban | note | adban | adunban
+model Case {
+  id        String    @id @default(cuid())
+  guildId   String
+  number    Int
+  type      String
+  userId    String
+  modId     String
+  reason    String?
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+  /// false once a warn is voided, a tempban/adban has ended, etc.
+  active    Boolean   @default(true)
+
+  @@unique([guildId, number])
+  @@index([guildId, userId])
+  @@index([type, active, expiresAt])
+}
+
+/// Sticky message kept at the bottom of a channel.
+model Sticky {
+  channelId String  @id
+  guildId   String
+  /// JSON: { title?, body, color?, postAdButton, showRules }
+  content   String
+  messageId String?
+  quietMs   Int     @default(4000)
+  paused    Boolean @default(false)
+
+  @@index([guildId])
+}
+
+model RolePanel {
+  id          String  @id @default(cuid())
+  guildId     String
+  title       String
+  description String?
+  /// toggle | unique
+  mode        String  @default("toggle")
+  /// JSON array: [{ roleId, label, emoji? }]
+  roles       String  @default("[]")
+  channelId   String?
+  messageId   String?
+
+  @@index([guildId])
+}
+
+model TempRole {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  roleId    String
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+/// Roles to restore when a member rejoins (only roles listed in config.persistRoleIds).
+model PersistedRoles {
+  guildId String
+  userId  String
+  roleIds String
+
+  @@id([guildId, userId])
+}
+
+/// Ads to delete once a member who left has been gone longer than the grace period.
+model LeaveCleanup {
+  guildId String
+  userId  String
+  runAt   DateTime
+
+  @@id([guildId, userId])
+  @@index([runAt])
+}
+
+/// Channels locked by /lockdown, so /lockdown end restores only those.
+model Lockdown {
+  guildId    String   @id
+  channelIds String
+  startedAt  DateTime @default(now())
+}

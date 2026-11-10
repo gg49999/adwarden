@@ -1,0 +1,6 @@
+# Phishing / scam domains to block, one per line. Lines starting with # are ignored.
+# Subdomains are matched too: "example.com" also blocks "free.example.com".
+#
+# The bot also catches common look-alikes (fake Discord Nitro / Steam gift domains)
+# without a list. For broad coverage, set SCAM_LIST_URL in .env to a maintained
+# community list; it is downloaded at startup and merged with this file.

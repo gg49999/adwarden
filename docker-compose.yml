@@ -1,0 +1,12 @@
+services:
+  adwarden:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: file:/data/adwarden.db
+    volumes:
+      - adwarden-data:/data
+
+volumes:
+  adwarden-data:
